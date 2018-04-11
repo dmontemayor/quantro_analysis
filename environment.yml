@@ -1,0 +1,7 @@
+name: quantro_analysis
+channels:
+  - rdonnellyr
+#  - bioconda
+dependencies:
+  - r-base
+#  - bioconductor-quantro
