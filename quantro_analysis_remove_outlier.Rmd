@@ -1,7 +1,7 @@
 ---
-title: "NASA_quantro_analysis"
+title: "NASA quantro analysis - Remove HDT-1 outlier"
 author: "Daniel Montemayor"
-date: "Jan 15, 2019"
+date: "Jan 16, 2019"
 output:
   word_document: default
   html_document: default
@@ -60,32 +60,47 @@ matdensity(PreData, groupFactor = RawData$Group, xlab = "log of metabolite conce
 legend(x="topright",legend=unique(RawData$Group),col = c(1,2,3,4,5), lty = 1, lwd =3)
 ```
 
-Off hand, I'd say there are no global differences in the data. Although, one sample from the HDT-1 has particularly high density in the region around log(conc.) ~ 2. I see a variability within groups on the same order of magnitude as variability across groups. This suggests quantile normalization would be appropriate. Let's look at the box plot now.
+Off hand, I'd say there are no global differences in the data. Although, one sample from the HDT-1 has particularly high density in the region around log(conc.) ~ 2. I see a variability within groups on the same order of magnitude as variability across groups. This suggests quantile normalization would be appropriate.
+
+Let's continue the analysis with the HDT-1 outlier sample removed.
+```{r}
+#remove outlier
+PreData <- PreData[,!RawData$Converted.name=="F2"]
+RawData <- RawData[!RawData$Converted.name=="F2",]
+```
+We confirm the outlier is removed by reploting the distributions.
+```{r}
+matdensity(PreData, groupFactor = RawData$Group, xlab = "log of metabolite concentration", ylab = "density",
+           main = "Distribution of metabolite concentrations", brewer.n = 8, brewer.name = "Dark2")
+legend(x="topright",legend=unique(RawData$Group),col = c(1,2,3,4,5), lty = 1, lwd =3)
+```
+
+Let's look at the box plot now.
 ```{r}
 par(mar=c(5.1, 4.1, 4.1, 11.1), xpd=TRUE)
 matboxplot(PreData, groupFactor =RawData$Group, xaxt = "n", main = "log Metabolite Conc.")
 legend(x="topright",inset = c(-0.5,0),legend=unique(RawData$Group),col = c(1,2,3,4,5), lty = 1, lwd =3)
 ```
 
-All the data seem to fall within the same error bars. An argument can be made for the one HDT-1 sample with elevated concentration, although the argument would be weak. Qualitatively, it looks like there is no disparity between the variability within groups and the variability between groups. Let's use quantro to quantify these two types of variance.
+All the data seem to fall within the same error bars. With the outlier HDT-1 sample removed, it looks like there is no disparity between the variability within groups and the variability between groups. Let's use quantro to quantify these two types of variance.
 
 ##Main Quantro Analysis
 ```{r}
 qtest <- quantro(object=PreData, groupFactor = RawData$Group, B=5000)
 qtest
 ```
-We can confirm what we saw in the boxplot. Anova states average medians are equal across groups, so global shift does not exist. The `quantroStat` value tells us that the variability of distributions between the groups is only 1.9 times larger than the variability of the distributions within the groups. This suggest some but not strong global changes are apparent. **Quantile normalization is appropriate.** Let's look at the anova results in detail.
+We can confirm what we saw in the boxplot. Anova states average medians are equal across groups, so global shift does not exist. The `quantroStat` value tells us that the variability of distributions between the groups is only 1.95 times larger than the variability of the distributions within the groups. This suggest some but not strong global changes are apparent. **Quantile normalization is appropriate.** Let's look at the anova results in detail.
 ```{r}
 anova(qtest)
 ```
-The Pr(>F) value is the p-value of the calculattion. A value of 0.449 tell us that we cannot make any confidant claim of any global shift. Good. Let's now look at all the other quantro output.
+The Pr(>F) value is the p-value of the calculattion. A value of 0.76835 tell us that we cannot make any confidant claim of any global shift. Good. Let's now look at all the other quantro output.
 ```{r}
 MSbetween(qtest)
 MSwithin(qtest)
 ```
-Mean suared error (MSE) between groups is 0.07215301 while MSE within groups is  0.03776962. This is where we get the quantro stat of 1.91034.
+Mean suared error (MSE) between groups is 0.073 while MSE within groups is  0.038. This is where we get the quantro stat of 1.95.
 
-We tested 500 permutations samples in this analysis to quantify the significance of the quantroStat.
+We tested 5000 permutations samples in this analysis to quantify the significance of the quantroStat.
 ```{r}
 quantroPvalPerm(qtest)
 ```
@@ -94,7 +109,7 @@ The above value is the p-value associated with the proportion of times the test 
 quantroPlot(qtest)
 ```
 
-A histogram containing the null test statistics when using boostrapped samples. The red line is the observed test statistic quantroStat. Look's like we are on the edge of the significance level with p-value = 0.008. Perhaps removing the outlier sample from the HDT-1 group may help the statistics.
+A histogram containing the null test statistics when using boostrapped samples. The red line is the observed test statistic quantroStat. Look's like we have significance with p-value = 0.006. Removing the outlier sample from the HDT-1 group has helped the statistics.
 
 
 ## Conclusion
